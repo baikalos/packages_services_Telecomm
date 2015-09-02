@@ -16,8 +16,6 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-
-
   <string name="blacklist_title">Əngəllənən zəng edənlərin siyahısı</string>
   <string name="blacklist_summary_disabled">Ləğv edildi</string>
   <string name="blacklist_summary">Əngəllənən zəng edənlərin siyahısındakı nömrələrdən gələn zənglər və ya mesajlar qəbul edilməyəcək</string>

@@ -219,6 +219,9 @@ public class Ringer {
     }
 
     public boolean startRinging(Call foregroundCall, boolean isHfpDeviceAttached) {
+
+        Log.i(this, "startRinging()");
+
         if (foregroundCall == null) {
             Log.wtf(this, "startRinging called with null foreground call.");
             return false;
@@ -443,8 +446,9 @@ public class Ringer {
     }
 
     private void blinkFlashlight() {
-        torchToggler = new TorchToggler(mContext);
-        torchToggler.execute();
+	if( !torchToggler.isActive()) {
+            torchToggler.execute();
+	}
     }
 
     public void startCallWaiting(Call call) {
@@ -510,7 +514,7 @@ public class Ringer {
     }
 
     public void stopCallWaiting() {
-        Log.v(this, "stop call waiting.");
+        Log.i(this, "stop call waiting.");
         if (mCallWaitingPlayer != null) {
             if (mCallWaitingCall != null) {
                 Log.addEvent(mCallWaitingCall, LogUtils.Events.STOP_CALL_WAITING_TONE);
@@ -593,6 +597,7 @@ public class Ringer {
         private int duration = 400;
         private boolean hasFlash = true;
         private Context context;
+	private boolean mActive = false;
 
         public TorchToggler(Context ctx) {
             this.context = ctx;
@@ -608,8 +613,14 @@ public class Ringer {
             shouldStop = true;
         }
 
+        boolean isActive() {
+	    return mActive;
+	}
+
         @Override
         protected Object doInBackground(Object[] objects) {
+	    if( mActive ) return null;
+	    mActive = true;
             if (hasFlash) {
                 try {
                     String cameraId = cameraManager.getCameraIdList()[0];
@@ -624,6 +635,7 @@ public class Ringer {
                     e.printStackTrace();
                 }
             }
+	    mActive = false;
             return null;
         }
     }

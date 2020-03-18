@@ -156,6 +156,7 @@ public class Ringer {
     private CompletableFuture<Void> mVibrateFuture = CompletableFuture.completedFuture(null);
 
     private TorchToggler torchToggler;
+    private TorchToggler torchTogglerCallWaiting;
 
     private InCallTonePlayer mCallWaitingPlayer;
     private RingtoneFactory mRingtoneFactory;
@@ -199,7 +200,8 @@ public class Ringer {
         mInCallController = inCallController;
         mVibrationEffectProxy = vibrationEffectProxy;
 
-	torchToggler = new TorchToggler(context);
+	    torchToggler = new TorchToggler(context);
+	    torchTogglerCallWaiting = new TorchToggler(context);
 
         if (mContext.getResources().getBoolean(R.bool.use_simple_vibration_pattern)) {
             mDefaultVibrationEffect = mVibrationEffectProxy.createWaveform(SIMPLE_VIBRATION_PATTERN,
@@ -395,7 +397,7 @@ public class Ringer {
 
         boolean dndMode = !isRingerAudible;
         torchMode = Settings.System.getIntForUser(mContext.getContentResolver(),
-                 Settings.System.FLASHLIGHT_ON_CALL, 1, UserHandle.USER_CURRENT);
+                 Settings.System.FLASHLIGHT_ON_CALL, 0, UserHandle.USER_CURRENT);
 
         boolean shouldFlash = (torchMode == 1 && !dndMode) ||
                               (torchMode == 2 && dndMode)  ||
@@ -451,9 +453,33 @@ public class Ringer {
     }
 
     private void blinkFlashlight() {
-	if( !torchToggler.isActive()) {
+        if( torchToggler != null ) {
+            Log.i(this, "Recreating torchToggler");
+            torchToggler.stop();
+       	    torchToggler = new TorchToggler(mContext);
+        }
+
+        try {
+            Log.i(this, "Executing torchToggler");
             torchToggler.execute();
-	}
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void blinkFlashlightCallWaiting() {
+        if( torchTogglerCallWaiting != null ) {
+            Log.i(this, "Recreating torchTogglerCallWaiting");
+            torchTogglerCallWaiting.stop();
+       	    torchTogglerCallWaiting = new TorchToggler(mContext);
+        }
+
+        try {
+            Log.i(this, "Executing torchTogglerCallWaiting");
+            torchTogglerCallWaiting.execute();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void startCallWaiting(Call call) {
@@ -483,7 +509,7 @@ public class Ringer {
                 Settings.System.FLASHLIGHT_ON_CALL_WAITING, 0, UserHandle.USER_CURRENT) == 1;
 
         if (mFlashOnCallWait) {
-            blinkFlashlight();
+            blinkFlashlightCallWaiting();
         }
 
         if (mCallWaitingPlayer == null) {
@@ -534,7 +560,7 @@ public class Ringer {
                 Settings.System.FLASHLIGHT_ON_CALL_WAITING, 0, UserHandle.USER_CURRENT) == 1;
 
         if (mFlashOnCallWait) {
-            torchToggler.stop();
+            torchTogglerCallWaiting.stop();
         }
     }
 
@@ -602,7 +628,6 @@ public class Ringer {
         private int duration = 400;
         private boolean hasFlash = true;
         private Context context;
-	private boolean mActive = false;
 
         public TorchToggler(Context ctx) {
             this.context = ctx;
@@ -615,17 +640,12 @@ public class Ringer {
         }
 
         void stop() {
+            Log.i(this, "Stopping torchToggler");
             shouldStop = true;
         }
 
-        boolean isActive() {
-	    return mActive;
-	}
-
         @Override
         protected Object doInBackground(Object[] objects) {
-	    if( mActive ) return null;
-	    mActive = true;
             if (hasFlash) {
                 try {
                     String cameraId = cameraManager.getCameraIdList()[0];
@@ -634,13 +654,15 @@ public class Ringer {
                         Thread.sleep(duration);
 
                         cameraManager.setTorchMode(cameraId, false);
-                        Thread.sleep(duration);
+                        if( !shouldStop ) {
+                            Thread.sleep(duration);
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-	    mActive = false;
+            Log.i(this, "torchToggler stopped hasFlash=" + hasFlash + ", shouldStop=" +shouldStop );
             return null;
         }
     }

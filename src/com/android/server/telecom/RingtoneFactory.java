@@ -32,6 +32,7 @@ import android.provider.Settings;
 
 import android.telecom.Log;
 import android.telecom.PhoneAccount;
+import android.telecom.PhoneAccountHandle;
 import android.text.TextUtils;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -85,11 +86,17 @@ public class RingtoneFactory {
             Context contextToUse = hasDefaultRingtoneForUser(userContext) ? userContext : mContext;
             Uri defaultRingtoneUri;
             if (UserManager.get(contextToUse).isUserUnlocked(contextToUse.getUserId())) {
+                PhoneAccountHandle accountHandle = null;
+                try {
+                    accountHandle = incomingCall.getTargetPhoneAccount();
+                } catch (Exception sd) {
+                }
+
                 defaultRingtoneUri =
                         RingtoneManager.getActualDefaultRingtoneUriForPhoneAccountHandle(
                                 contextToUse,
                                 RingtoneManager.TYPE_RINGTONE,
-                                incomingCall.getTargetPhoneAccount());
+                                accountHandle);
             } else {
                 defaultRingtoneUri = Settings.System.DEFAULT_RINGTONE_URI;
             }

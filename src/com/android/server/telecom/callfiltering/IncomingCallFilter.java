@@ -69,6 +69,7 @@ public class IncomingCallFilter implements CallFilterResultCallback {
     public void performFiltering() {
         Log.addEvent(mCall, LogUtils.Events.FILTERING_INITIATED);
         for (CallFilter filter : mFilters) {
+            Log.i(IncomingCallFilter.this, "Call filtering started " + filter);
             filter.startFilterLookup(mCall, this);
         }
         // synchronized to prevent a race on mResult and to enter into Telecom.
@@ -89,6 +90,7 @@ public class IncomingCallFilter implements CallFilterResultCallback {
         synchronized (mTelecomLock) { // synchronizing to prevent race on mResult
             mNumPendingFilters--;
             mResult = result.combine(mResult);
+            Log.i(IncomingCallFilter.this, "Call filtering complete " + mNumPendingFilters);
             if (mNumPendingFilters == 0) {
                 // synchronized on mTelecomLock to enter into Telecom.
                 mHandler.post(new Runnable("ICF.oCFC", mTelecomLock) {

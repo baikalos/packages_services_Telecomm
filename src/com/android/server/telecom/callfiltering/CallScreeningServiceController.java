@@ -59,7 +59,7 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
     private final CallScreeningServiceHelper.AppLabelProxy mAppLabelProxy;
 
     private final int CARRIER_CALL_FILTERING_TIMED_OUT = 2000; // 2 seconds
-    private final int CALL_FILTERING_TIMED_OUT = 4500; // 4.5 seconds
+    private final int CALL_FILTERING_TIMED_OUT = 2000; // 4.5 seconds
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
@@ -113,7 +113,7 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
             @Override
             public void loggedRun() {
                 if (!mIsFinished) {
-                    Log.i(CallScreeningServiceController.this, "Call screening has timed out.");
+                    Log.i(CallScreeningServiceController.this, "Call filtering: Call screening has timed out.");
                     finishCallScreening();
                 }
             }
@@ -123,6 +123,9 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
     @Override
     public void onCallScreeningFilterComplete(Call call, CallFilteringResult result,
             String packageName) {
+
+        Log.i(CallScreeningServiceController.this, "Call filtering: Complete res=" + result + ", pkg=" + packageName);
+
         synchronized (mTelecomLock) {
             mResult = result.combine(mResult);
             if (!TextUtils.isEmpty(packageName) && packageName.equals(getCarrierPackageName())) {
@@ -157,8 +160,10 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
         String carrierPackageName = getCarrierPackageName();
         if (TextUtils.isEmpty(carrierPackageName)) {
             mIsCarrierFinished = true;
+            Log.i(CallScreeningServiceController.this, "Call filtering: bindDefaultDialerAndUserChosenService()");
             bindDefaultDialerAndUserChosenService();
         } else {
+            Log.i(CallScreeningServiceController.this, "Call filtering: createCallScreeningServiceFilter()");
             createCallScreeningServiceFilter().startCallScreeningFilter(mCall, this,
                     carrierPackageName, mAppLabelProxy.getAppLabel(carrierPackageName),
                     CallScreeningServiceFilter.CALL_SCREENING_FILTER_TYPE_CARRIER);
@@ -168,6 +173,7 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
         mHandler.postDelayed(new Runnable("ICF.pFTO", mTelecomLock) {
             @Override
             public void loggedRun() {
+                Log.i(CallScreeningServiceController.this, "Call filtering: CARRIER_CALL_FILTERING_TIMED_OUT");
                 if (!mIsCarrierFinished) {
                     mIsCarrierFinished = true;
                     checkContactExistsAndBindService();
@@ -177,6 +183,7 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
     }
 
     private void bindDefaultDialerAndUserChosenService() {
+        Log.i(CallScreeningServiceController.this, "Call filtering: bindDefaultDialerAndUserChosenService() = " + mIsCarrierFinished);
         if (mIsCarrierFinished) {
             String dialerPackageName = getDefaultDialerPackageName();
             String systemDialerPackageName = getSystemDialerPackageName();
@@ -186,15 +193,20 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
                 int dialerType = dialerPackageName.equals(systemDialerPackageName) ?
                         CallScreeningServiceFilter.CALL_SCREENING_FILTER_TYPE_SYSTEM_DIALER :
                         CallScreeningServiceFilter.CALL_SCREENING_FILTER_TYPE_DEFAULT_DIALER;
+
+                Log.i(CallScreeningServiceController.this, "Call filtering: createCallScreeningServiceFilter() = " + dialerPackageName);
+
                 createCallScreeningServiceFilter().startCallScreeningFilter(mCall,
                         CallScreeningServiceController.this, dialerPackageName,
                         mAppLabelProxy.getAppLabel(dialerPackageName), dialerType);
             }
 
             String userChosenPackageName = getUserChosenPackageName();
-            if (TextUtils.isEmpty(userChosenPackageName)) {
+            if (TextUtils.isEmpty(userChosenPackageName) || dialerPackageName.equals(userChosenPackageName) ) {
                 mIsUserChosenFinished = true;
             } else {
+
+                Log.i(CallScreeningServiceController.this, "Call filtering: createCallScreeningServiceFilter() = " + userChosenPackageName);
                 createCallScreeningServiceFilter().startCallScreeningFilter(mCall,
                         CallScreeningServiceController.this, userChosenPackageName,
                         mAppLabelProxy.getAppLabel(userChosenPackageName),
@@ -223,7 +235,7 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
                     @Override
                     public void onCallerInfoQueryComplete(Uri handle, CallerInfo info) {
                         boolean contactExists = info != null && info.contactExists;
-                        Log.i(CallScreeningServiceController.this, "Contact exists: " +
+                        Log.i(CallScreeningServiceController.this, "Call filtering: Contact exists: " +
                                 contactExists);
                         if (!contactExists) {
                             bindDefaultDialerAndUserChosenService();
@@ -241,6 +253,7 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
     }
 
     private void finishCallScreening() {
+        Log.i(CallScreeningServiceController.this, "Call filtering: finishCallScreening()", new Throwable());
         Log.addEvent(mCall, LogUtils.Events.CONTROLLER_SCREENING_COMPLETED, mResult);
         mCallback.onCallFilteringComplete(mCall, mResult);
         mIsFinished = true;
@@ -255,6 +268,8 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
             componentName = ComponentName.unflattenFromString(configBundle.getString
                     (CarrierConfigManager.KEY_CARRIER_CALL_SCREENING_APP_STRING, ""));
         }
+
+        Log.i(CallScreeningServiceController.this, "Call filtering: getCarrierPackageName() = " + componentName);
 
         return componentName != null ? componentName.getPackageName() : null;
     }

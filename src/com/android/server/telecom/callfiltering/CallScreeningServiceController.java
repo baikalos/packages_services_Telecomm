@@ -59,7 +59,7 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
     private final CallScreeningServiceHelper.AppLabelProxy mAppLabelProxy;
 
     private final int CARRIER_CALL_FILTERING_TIMED_OUT = 2000; // 2 seconds
-    private final int CALL_FILTERING_TIMED_OUT = 2000; // 4.5 seconds
+    private final int CALL_FILTERING_TIMED_OUT = 4500; // 4.5 seconds
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
@@ -187,6 +187,7 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
         if (mIsCarrierFinished) {
             String dialerPackageName = getDefaultDialerPackageName();
             String systemDialerPackageName = getSystemDialerPackageName();
+            Log.i(CallScreeningServiceController.this, "Call filtering: bindDefaultDialerAndUserChosenService() def=" + dialerPackageName + ", sys=" + systemDialerPackageName);
             if (TextUtils.isEmpty(dialerPackageName)) {
                 mIsDefaultDialerFinished = true;
             } else {
@@ -194,7 +195,7 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
                         CallScreeningServiceFilter.CALL_SCREENING_FILTER_TYPE_SYSTEM_DIALER :
                         CallScreeningServiceFilter.CALL_SCREENING_FILTER_TYPE_DEFAULT_DIALER;
 
-                Log.i(CallScreeningServiceController.this, "Call filtering: createCallScreeningServiceFilter() = " + dialerPackageName);
+                Log.i(CallScreeningServiceController.this, "Call filtering: createCallScreeningServiceFilter(dialer) = " + dialerPackageName + ", sys=" + dialerType);
 
                 createCallScreeningServiceFilter().startCallScreeningFilter(mCall,
                         CallScreeningServiceController.this, dialerPackageName,
@@ -206,7 +207,7 @@ public class CallScreeningServiceController implements IncomingCallFilter.CallFi
                 mIsUserChosenFinished = true;
             } else {
 
-                Log.i(CallScreeningServiceController.this, "Call filtering: createCallScreeningServiceFilter() = " + userChosenPackageName);
+                Log.i(CallScreeningServiceController.this, "Call filtering: createCallScreeningServiceFilter(user) = " + userChosenPackageName);
                 createCallScreeningServiceFilter().startCallScreeningFilter(mCall,
                         CallScreeningServiceController.this, userChosenPackageName,
                         mAppLabelProxy.getAppLabel(userChosenPackageName),
